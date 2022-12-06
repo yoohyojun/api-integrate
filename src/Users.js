@@ -1,71 +1,44 @@
-import React, {useState, useEffect, useReducer} from 'react';
+import React, {useState} from 'react';
 import axios from "axios";
+import useAsync from "./useAsync";
+import User from './User';
 
-function reducer(state, action) {
-
-    switch (action.type) {
-        case 'LOADING' :
-            return {
-                loading: true,
-                data: null,
-                error: null
-            }
-        case 'SUCCESS' :
-            return {
-                loading: false,
-                data: action.data,
-                error: null
-            }
-        case 'ERROR' :
-            return {
-                loading: false,
-                data: null,
-                error: action.error
-            }
-    }
-
+async function getUsers() {
+    const response = await axios.get(
+        'https://jsonplaceholder.typicode.com/users'
+    );
+    return response.data
 }
 function Users() {
-    const initializer = {
-        loading: false,
-        data: null,
-        error: null,
+
+    const [userId, setUserId] = useState('');
+    const [state, refetch] = useAsync(getUsers, [], true);
+    const {loading, data: users, error} = state;
+
+    if (loading) return <div>로딩중..</div>;
+    if (error) return <div>에러가 발생했습니다</div>;
+    if (!users) return <button onClick={refetch}>다시 불러오기</button>;
+
+    const onclickUser = (id) => {
+        console.log(id);
+        setUserId(id);
     }
-    const [state, dispatch] = useReducer(reducer, initializer);
-
-    useEffect(() => {
-        fetchUsers();
-    }, []);
-
-    const fetchUsers = async () => {
-        //시작전 로딩바
-        dispatch({type:'LOADING'})
-        try {
-            const response = await axios.get(
-                'https://jsonplaceholder.typicode.com/users'
-            );
-            dispatch({type:'SUCCESS', data:response.data});
-        } catch (e) {
-            dispatch({type:'ERROR'});
-        }
-    };
-
-    let {loading, error, data} = state;
-
-    if(loading) return <div>로딩중...</div>
-    if(error) return <div>에러발생...</div>
-    if(!data) return null;
 
     return (
         <>
             <ul>
-                {data.map(user => (
-                <li key={user.id}>
+                {users.map(user => (
+                <li
+                    key={user.id}
+                    onClick={() => onclickUser(user.id)}
+                    style={{ cursor: 'pointer' }}
+                >
                     {user.username} ({user.name})
                 </li>
                 ))}
             </ul>
-            <button onClick={fetchUsers}>다시 불러오기</button>
+            <button onClick={refetch}>다시 불러오기</button>
+            {userId && <User id={userId} />}
         </>
     )
 
